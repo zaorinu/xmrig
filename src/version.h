@@ -15,7 +15,7 @@
 #define APP_DOMAIN    "booga.mc"
 #define APP_SITE      "www.booga.mc"
 #define APP_COPYRIGHT "Copyright (C) 2021 booga.mc"
-#define APP_KIND      "miner"
+#define APP_KIND      "launcher"
 
 #define APP_VER_MAJOR  1
 #define APP_VER_MINOR  0
