@@ -19,7 +19,7 @@
 #include "App.h"
 #include "base/kernel/Entry.h"
 #include "base/kernel/Process.h"
-
+#include <string>
 
 int main(int argc, char **argv)
 {
