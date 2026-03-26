@@ -8,10 +8,6 @@ build_win:
 runs-on: windows-2022
 
 ```
-defaults:
-  run:
-    shell: msys2 {0} -mingw64
-
 steps:
   - name: Setup MSYS2 (MINGW64)
     uses: msys2/setup-msys2@v2
@@ -29,23 +25,33 @@ steps:
     uses: actions/checkout@v3
 
   - name: Clone dependencies
+    shell: msys2 {0}
     run: |
       git clone https://github.com/xmrig/xmrig-deps.git
       mv xmrig-deps /c/xmrig-deps
 
   - name: Configure
+    shell: msys2 {0}
     run: |
+      export MSYSTEM=MINGW64
+      export PATH=/mingw64/bin:$PATH
       mkdir build
       cd build
       cmake .. -G Ninja -DXMRIG_DEPS=/c/xmrig-deps/gcc/x64
 
   - name: Build
+    shell: msys2 {0}
     run: |
+      export MSYSTEM=MINGW64
+      export PATH=/mingw64/bin:$PATH
       cd build
       ninja
 
   - name: Package
+    shell: msys2 {0}
     run: |
+      export MSYSTEM=MINGW64
+      export PATH=/mingw64/bin:$PATH
       cd build
       cp ../src/config.json .
       cp ../bin/WinRing0/WinRing0x64.sys .
