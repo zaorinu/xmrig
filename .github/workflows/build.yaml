@@ -1,65 +1,72 @@
-name: Build XMRig Windows Release
+name: Build XMRig (Windows)
 
 on:
-workflow_dispatch:
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: "Create GitHub release"
+        required: false
+        default: "true"
 
 jobs:
-build_win:
-runs-on: windows-2022
+  build_win:
+    runs-on: windows-latest
 
-```
-steps:
-  - name: Setup MSYS2 (MINGW64)
-    uses: msys2/setup-msys2@v2
-    with:
-      msystem: MINGW64
-      update: true
-      install: >
-        mingw-w64-x86_64-gcc
-        mingw-w64-x86_64-cmake
-        mingw-w64-x86_64-ninja
-        mingw-w64-x86_64-7zip
-        git
+    defaults:
+      run:
+        shell: msys2 {0}
 
-  - name: Checkout xmrig
-    uses: actions/checkout@v3
+    steps:
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >
+            base-devel
+            mingw-w64-ucrt-x86_64-toolchain
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-libuv
+            mingw-w64-ucrt-x86_64-openssl
+            mingw-w64-ucrt-x86_64-hwloc
+            mingw-w64-ucrt-x86_64-7zip
+            git
 
-  - name: Clone dependencies
-    shell: msys2 {0}
-    run: |
-      git clone https://github.com/xmrig/xmrig-deps.git
-      mv xmrig-deps /c/xmrig-deps
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-  - name: Configure
-    shell: msys2 {0}
-    run: |
-      export MSYSTEM=MINGW64
-      export PATH=/mingw64/bin:$PATH
-      mkdir build
-      cd build
-      cmake .. -G Ninja -DXMRIG_DEPS=/c/xmrig-deps/gcc/x64
+      - name: Build XMRig
+        run: |
+          cmake . -G "Unix Makefiles"
+          make -j2
 
-  - name: Build
-    shell: msys2 {0}
-    run: |
-      export MSYSTEM=MINGW64
-      export PATH=/mingw64/bin:$PATH
-      cd build
-      ninja
+      - name: Package
+        run: |
+          cp src/config.json .
+          7z a xmrig-win64.zip xmrig.exe config.json
 
-  - name: Package
-    shell: msys2 {0}
-    run: |
-      export MSYSTEM=MINGW64
-      export PATH=/mingw64/bin:$PATH
-      cd build
-      cp ../src/config.json .
-      cp ../bin/WinRing0/WinRing0x64.sys .
-      7z a -tzip -mx windows_build.zip xmrig.exe config.json WinRing0x64.sys
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: xmrig-win64
+          path: xmrig-win64.zip
 
-  - name: Upload artifact
-    uses: actions/upload-artifact@v4
-    with:
-      name: windows_build
-      path: build/windows_build.zip
-```
+  release:
+    needs: build_win
+    if: ${{ github.event.inputs.create_release == 'true' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: xmrig-win64
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: manual-${{ github.run_number }}
+          name: Windows build ${{ github.run_number }}
+          files: xmrig-win64.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
