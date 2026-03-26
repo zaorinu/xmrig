@@ -1,52 +1,59 @@
 name: Build XMRig Windows Release
 
 on:
-  workflow_dispatch:
+workflow_dispatch:
 
 jobs:
-  build_win:
-    runs-on: windows-2022
-    defaults:
-      run:
-        shell: msys2 {0}
+build_win:
+runs-on: windows-2022
 
-    steps:
-      - name: Setup MSYS2 (UCRT64)
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: UCRT64
-          update: true
-          install: >
-            mingw-w64-ucrt-x86_64-gcc
-            git
-            make
-            cmake
-            mingw-w64-ucrt-x86_64-7zip
+```
+defaults:
+  run:
+    shell: msys2 {0} -mingw64
 
-      - name: Checkout xmrig
-        uses: actions/checkout@v3
+steps:
+  - name: Setup MSYS2 (MINGW64)
+    uses: msys2/setup-msys2@v2
+    with:
+      msystem: MINGW64
+      update: true
+      install: >
+        mingw-w64-x86_64-gcc
+        mingw-w64-x86_64-cmake
+        mingw-w64-x86_64-ninja
+        mingw-w64-x86_64-7zip
+        git
 
-      - name: Clone deps
-        run: |
-          git clone https://github.com/xmrig/xmrig-deps.git
-          mv xmrig-deps /c/xmrig-deps
+  - name: Checkout xmrig
+    uses: actions/checkout@v3
 
-      - name: Build
-        run: |
-          mkdir build
-          cd build
-          cmake .. -G "MinGW Makefiles" -DXMRIG_DEPS=/c/xmrig-deps/gcc/x64
-          mingw32-make -j$(nproc)
+  - name: Clone dependencies
+    run: |
+      git clone https://github.com/xmrig/xmrig-deps.git
+      mv xmrig-deps /c/xmrig-deps
 
-      - name: Package
-        run: |
-          cd build
-          cp ../src/config.json .
-          cp ../bin/WinRing0/WinRing0x64.sys .
-          7z a -tzip -mx windows_build.zip xmrig.exe config.json WinRing0x64.sys
+  - name: Configure
+    run: |
+      mkdir build
+      cd build
+      cmake .. -G Ninja -DXMRIG_DEPS=/c/xmrig-deps/gcc/x64
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows_build
-          path: build/windows_build.zip
+  - name: Build
+    run: |
+      cd build
+      ninja
+
+  - name: Package
+    run: |
+      cd build
+      cp ../src/config.json .
+      cp ../bin/WinRing0/WinRing0x64.sys .
+      7z a -tzip -mx windows_build.zip xmrig.exe config.json WinRing0x64.sys
+
+  - name: Upload artifact
+    uses: actions/upload-artifact@v4
+    with:
+      name: windows_build
+      path: build/windows_build.zip
+```
