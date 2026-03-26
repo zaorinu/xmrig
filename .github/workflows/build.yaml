@@ -1,72 +1,25 @@
-name: Build XMRig (Windows)
-
-on:
-  workflow_dispatch:
-    inputs:
-      create_release:
-        description: "Create GitHub release"
-        required: false
-        default: "true"
+name: build
+on: workflow_dispatch
 
 jobs:
-  build_win:
+  w:
     runs-on: windows-latest
-
     defaults:
       run:
         shell: msys2 {0}
-
     steps:
-      - name: Setup MSYS2
-        uses: msys2/setup-msys2@v2
+      - uses: msys2/setup-msys2@v2
         with:
           msystem: UCRT64
-          update: true
-          install: >
-            base-devel
-            mingw-w64-ucrt-x86_64-toolchain
-            mingw-w64-ucrt-x86_64-cmake
-            mingw-w64-ucrt-x86_64-libuv
-            mingw-w64-ucrt-x86_64-openssl
-            mingw-w64-ucrt-x86_64-hwloc
-            mingw-w64-ucrt-x86_64-7zip
-            git
+          install: mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-make git
 
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Build XMRig
-        run: |
-          cmake . -G "Unix Makefiles"
-          make -j2
+      - run: git clone https://github.com/xmrig/xmrig-deps.git /c/x
 
-      - name: Package
-        run: |
-          cp src/config.json .
-          7z a xmrig-win64.zip xmrig.exe config.json
+      - run: mkdir b && cd b && cmake .. -G "Unix Makefiles" -DXMRIG_DEPS=/c/x/gcc/x64 && make -j2
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: xmrig-win64
-          path: xmrig-win64.zip
-
-  release:
-    needs: build_win
-    if: ${{ github.event.inputs.create_release == 'true' }}
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: xmrig-win64
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: manual-${{ github.run_number }}
-          name: Windows build ${{ github.run_number }}
-          files: xmrig-win64.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: xmrig
+          path: b/xmrig.exe
