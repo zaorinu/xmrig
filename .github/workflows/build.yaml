@@ -35,8 +35,8 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake .. -G "Unix Makefiles" -DXMRIG_DEPS=/c/xmrig-deps/gcc/x64
-          make -j$(nproc)
+          cmake .. -G "MinGW Makefiles" -DXMRIG_DEPS=/c/xmrig-deps/gcc/x64
+          mingw32-make -j$(nproc)
 
       - name: Package
         run: |
